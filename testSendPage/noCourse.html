@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #f5f6fa;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: "Microsoft YaHei", sans-serif;
+            padding: 15px;
+        }
+
+        .container {
+            background: white;
+            padding: 25px 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .message {
+            color: #2c3e50;
+            font-size: 20px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .sub-message {
+            color: #7f8c8d;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+
+        .decoration {
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(to right, #3498db, #2ecc71);
+            margin: 15px auto;
+            border-radius: 3px;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .footer {
+            color: #95a5a6;
+            font-size: 13px;
+            margin-top: 15px;
+        }
+
+        .highlight {
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        /* 移动端优化 */
+        @media screen and (max-width: 480px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            .icon {
+                font-size: 50px;
+            }
+
+            .message {
+                font-size: 18px;
+            }
+
+            .sub-message {
+                font-size: 14px;
+                padding: 0 5px;
+            }
+
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <center><h1>明天没有课程安排</h1></center>
+        <div class="icon">🌅</div>
+        <div class="message"></div>
+        <div class="decoration"></div>
+        <div class="sub-message">
+            <h2>享受这个轻松的时光吧！</h2>
+            <h2>您可以安排一些自己喜欢的活动，</h2>
+            <h2>或者好好休息一下。</h2>
+        </div>
+    </div>
+</body>
+</html>
