@@ -118,9 +118,9 @@ session_start();
         <h2>创建账号</h2>
         <form action="do_register.php" method="post" id="registerForm">
             <div class="form-group">
-                <label>用户名</label>
-                <input type="text" name="username" required placeholder="请输入用户名(长度8-15个字符)">
-                <div class="error-text" id="username-error">该用户名已存在</div>
+                <label>学号</label>
+                <input type="text" name="username" required placeholder="请输入学号(长度8-15个字符)">
+                <div class="error-text" id="username-error">该学号已存在</div>
             </div>
             <div class="form-group">
                 <label>真实姓名</label>
@@ -129,6 +129,7 @@ session_start();
             <div class="form-group">
                 <label>邮箱地址</label>
                 <input type="email" name="email" required placeholder="请输入有效的邮箱地址">
+                <div class="error-text" id="email-error">该邮箱已被注册</div>
             </div>
             <div class="form-group">
                 <label>设置密码</label>
@@ -219,6 +220,8 @@ session_start();
                     }, 1000);
                 } else if(data.message === 'username_exists') {
                     document.getElementById('username-error').style.display = 'block';
+                } else if(data.message === 'email_exists') {
+                    document.getElementById('email-error').style.display = 'block';
                 }
             })
             .catch(error => {

@@ -30,7 +30,7 @@ class Database {
             username VARCHAR(30) NOT NULL UNIQUE,
             realname VARCHAR(30) NOT NULL,
             password VARCHAR(255) NOT NULL,
-            email VARCHAR(50) NOT NULL,
+            email VARCHAR(50) NOT NULL UNIQUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )";
         $this->conn->query($sql);

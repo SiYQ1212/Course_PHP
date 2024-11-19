@@ -22,78 +22,103 @@ $email = $row['email'];
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (isset($_POST['submit'])) {  // 处理提交修改
         $newRealname = $_POST['realname'];
-        $newEmail = $_POST['email'];
+        $newEmail = trim($_POST['email']);
         $newPassword = $_POST['password'];
+        $hasError = false;
         
-        // 获取旧邮箱
-        $stmt = $conn->prepare("SELECT email FROM info WHERE username = ?");
-        $stmt->bind_param("s", $_SESSION['username']);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-        $oldEmail = $row['email'];
+        // 准备 SQL 更新语句
+        $sql = "UPDATE info SET realname = ?";
+        $params = array($newRealname);
+        $types = "s";
         
-        // 如果邮箱发生变化
-        if ($oldEmail !== $newEmail) {
-        
-            // 更新课表邮件数据库
-            $courseCommand = escapeshellcmd("python ../auxiliaryProgram/courseEmailDB.py update " . 
-                                    escapeshellarg($oldEmail) . " " . 
-                                    escapeshellarg($newEmail));
-            $courseOutput = [];
-            $courseReturnCode = -1;
-            exec($courseCommand, $courseOutput, $courseReturnCode);
+        // 如果提供了新邮箱
+        if (!empty($newEmail)) {
+            // 检查新邮箱是否已存在
+            $checkEmail = $conn->prepare("SELECT email FROM info WHERE email = ? AND username != ?");
+            $checkEmail->bind_param("ss", $newEmail, $_SESSION['username']);
+            $checkEmail->execute();
+            $emailResult = $checkEmail->get_result();
             
-            if ($courseReturnCode !== 0) {
-                // 更新失败，显示错误信息
+            if ($emailResult->num_rows > 0) {
+                // 邮箱已存在，设置错误标志
+                $hasError = true;
                 echo "<script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        var modal = document.getElementById('success-modal');
-                        var modalContent = document.getElementById('success-modal-content').querySelector('p');
-                        modalContent.textContent = '邮箱更新失败，请重试！';
-                        modal.style.display = 'block';
-                        setTimeout(function() {
-                            modal.style.display = 'none';
-                        }, 1000);
-                    });
+                    window.onload = function() {
+                        document.getElementById('email-error').style.display = 'block';
+                        document.getElementById('email').value = '" . htmlspecialchars($newEmail) . "';
+                    }
                 </script>";
-                return;
+            } else {
+                // 邮箱验证通过，获取旧邮箱并更新课表邮件数据库
+                $stmt = $conn->prepare("SELECT email FROM info WHERE username = ?");
+                $stmt->bind_param("s", $_SESSION['username']);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $row = $result->fetch_assoc();
+                $oldEmail = $row['email'];
+                
+                // 更新课表邮件数据库
+                $courseCommand = escapeshellcmd("python ../auxiliaryProgram/courseEmailDB.py update " . 
+                                        escapeshellarg($oldEmail) . " " . 
+                                        escapeshellarg($newEmail));
+                $courseOutput = [];
+                $courseReturnCode = -1;
+                exec($courseCommand, $courseOutput, $courseReturnCode);
+                
+                if ($courseReturnCode !== 0) {
+                    $hasError = true;
+                    echo "<script>
+                        window.onload = function() {
+                            var modal = document.getElementById('success-modal');
+                            var modalContent = document.getElementById('success-modal-content').querySelector('p');
+                            modalContent.textContent = '邮箱更新失败，请重试！';
+                            modal.style.display = 'block';
+                            setTimeout(function() {
+                                modal.style.display = 'none';
+                            }, 1000);
+                        }
+                    </script>";
+                } else {
+                    // 添加邮箱更新到 SQL 语句
+                    $sql .= ", email = ?";
+                    $params[] = $newEmail;
+                    $types .= "s";
+                }
             }
         }
         
-        // 继续原有的更新用户信息逻辑
-        $sql = "UPDATE info SET realname = ?, email = ?";
-        $params = array($newRealname, $newEmail);
-        $types = "ss";
-        
-        if (!empty($newPassword)) {
-            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-            $sql .= ", password = ?";
-            $params[] = $hashedPassword;
+        // 如果没有错误，继续处理密码更新和执行最终的更新操作
+        if (!$hasError) {
+            // 如果提供了新密码
+            if (!empty($newPassword)) {
+                $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+                $sql .= ", password = ?";
+                $params[] = $hashedPassword;
+                $types .= "s";
+            }
+            
+            $sql .= " WHERE username = ?";
+            $params[] = $_SESSION['username'];
             $types .= "s";
-        }
-        
-        $sql .= " WHERE username = ?";
-        $params[] = $_SESSION['username'];
-        $types .= "s";
-        
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param($types, ...$params);
-        $success = $stmt->execute();
-        
-        if ($success) {
-            echo "<script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        var modal = document.getElementById('success-modal');
-                        var modalContent = document.getElementById('success-modal-content').querySelector('p');
-                        modalContent.textContent = '信息更新成功！';
-                        modal.style.display = 'block';
-                        setTimeout(function() {
-                            modal.style.display = 'none';
-                            window.location.href = '../welcome.php';
-                        }, 1000);
-                    });
-                </script>";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param($types, ...$params);
+            $success = $stmt->execute();
+            
+            if ($success) {
+                echo "<script>
+                        window.onload = function() {
+                            var modal = document.getElementById('success-modal');
+                            var modalContent = document.getElementById('success-modal-content').querySelector('p');
+                            modalContent.textContent = '信息更新成功！';
+                            modal.style.display = 'block';
+                            setTimeout(function() {
+                                modal.style.display = 'none';
+                                window.location.href = '../welcome.php';
+                            }, 1000);
+                        }
+                    </script>";
+            }
         }
     } elseif (isset($_POST['delete'])) {  // 处理注销用户
         // 先获取用户邮箱
@@ -275,7 +300,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="container">
             <form action="#" method="post">
                 <div class="form-group">
-                    <label for="username">用户名：</label>
+                    <label for="username">学号：</label>
                     <input type="text" id="username" name="username" 
                            value="<?php echo htmlspecialchars($username); ?>" 
                            readonly style="opacity: 0.6;">
@@ -288,7 +313,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="form-group">
                     <label for="email">邮箱地址：</label>
                     <input type="email" id="email" name="email" 
-                           value="<?php echo htmlspecialchars($email); ?>" required>
+                           placeholder="留空代表不修改邮箱">
+                    <div class="error-text" id="email-error" style="display: none; color: red; font-size: 12px;">该邮箱已被注册</div>
                 </div>
                 <div class="form-group">
                     <label for="password">新密码：</label>

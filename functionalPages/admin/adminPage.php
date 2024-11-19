@@ -36,8 +36,21 @@ if (!$isAjax) {
 
         th, td {
             padding: 12px;
-            text-align: left;
+            text-align: center;  /* 将所有单元格居中对齐 */
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            vertical-align: middle;  /* 垂直居中 */
+        }
+
+        /* 如果需要特定列左对齐（比如学号、姓名等），可以单独设置 */
+        td:nth-child(1),
+        td:nth-child(2),
+        td:nth-child(3),
+        td:nth-child(6),
+        th:nth-child(1),
+        th:nth-child(2),
+        th:nth-child(3),
+        th:nth-child(6) {
+            text-align: left;
         }
 
         tr:hover {
@@ -292,6 +305,46 @@ if (!$isAjax) {
         .admin-button i {
             font-size: 18px;
         }
+
+        .error-text {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .status-box {
+            width: 20px;
+            height: 20px;
+            background-color: #ff4444;
+            border-radius: 4px;
+            margin: 0 auto;  /* 水平居中 */
+            transition: background-color 0.3s ease;
+            display: inline-block;  /* 改为行内块级元素 */
+            vertical-align: middle;  /* 垂直居中 */
+        }
+
+        .status-box.active {
+            background-color: #4CAF50;
+        }
+
+        /* 状态列的表头样式 */
+        th:nth-child(4),
+        th:nth-child(5) {
+            text-align: center;
+        }
+
+        /* 状态列的单元格样式 */
+        td:nth-child(4),
+        td:nth-child(5) {
+            text-align: center;
+            padding: 12px 0;  /* 调整内边距 */
+        }
     </style>
 </head>
 <body>
@@ -341,9 +394,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     <table>
         <thead>
             <tr>
-                <th>用户名</th>
+                <th>学号</th>
                 <th>真实姓名</th>
                 <th>邮箱</th>
+                <th>课表</th>
+                <th>授权码</th>
                 <th>注册时间</th>
             </tr>
         </thead>
@@ -353,6 +408,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
                 <td><?php echo htmlspecialchars($row['username']); ?></td>
                 <td><?php echo htmlspecialchars($row['realname']); ?></td>
                 <td><?php echo htmlspecialchars($row['email']); ?></td>
+                <td><div class="status-box course-status" data-email="<?php echo htmlspecialchars($row['email']); ?>"></div></td>
+                <td><div class="status-box proxy-status" data-email="<?php echo htmlspecialchars($row['email']); ?>"></div></td>
                 <td><?php echo htmlspecialchars($row['created_at']); ?></td>
             </tr>
             <?php endwhile; ?>
@@ -394,9 +451,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
         <table>
             <thead>
                 <tr>
-                    <th>用户名</th>
+                    <th>学号</th>
                     <th>真实姓名</th>
                     <th>邮箱</th>
+                    <th>课表</th>
+                    <th>授权码</th>
                     <th>注册时间</th>
                 </tr>
             </thead>
@@ -406,6 +465,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
                     <td><?php echo htmlspecialchars($row['username']); ?></td>
                     <td><?php echo htmlspecialchars($row['realname']); ?></td>
                     <td><?php echo htmlspecialchars($row['email']); ?></td>
+                    <td><div class="status-box course-status" data-email="<?php echo htmlspecialchars($row['email']); ?>"></div></td>
+                    <td><div class="status-box proxy-status" data-email="<?php echo htmlspecialchars($row['email']); ?>"></div></td>
                     <td><?php echo htmlspecialchars($row['created_at']); ?></td>
                 </tr>
                 <?php endwhile; ?>
@@ -442,7 +503,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
             <form id="userForm">
                 <input type="hidden" id="userId">
                 <div class="form-group">
-                    <label>用户名：</label>
+                    <label>学号：</label>
                     <input type="text" id="username" disabled>
                 </div>
                 <div class="form-group">
@@ -450,8 +511,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
                     <input type="text" id="realname">
                 </div>
                 <div class="form-group">
-                    <label>邮箱地址：</label>
-                    <input type="email" id="userEmail" placeholder="请输入新的邮箱地址">
+                    <label for="email">邮箱地址：</label>
+                    <input type="email" id="email" name="email" class="form-control">
+                    <div class="error-text" id="email-error" style="display: none; color: red; font-size: 12px;">该邮箱已被注册</div>
                 </div>
                 <div class="form-group">
                     <label>新密码：</label>
@@ -485,7 +547,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
             document.getElementById('userId').value = userData.id;
             document.getElementById('username').value = userData.username;
             document.getElementById('realname').value = userData.realname;
-            document.getElementById('userEmail').value = userData.email;
+            document.getElementById('email').value = userData.email;
             document.getElementById('userPassword').value = '';
         }
 
@@ -525,7 +587,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
         function updateUser() {
             const userId = document.getElementById('userId').value;
             const realname = document.getElementById('realname').value;
-            const email = document.getElementById('userEmail').value;
+            const email = document.getElementById('email').value;
             const password = document.getElementById('userPassword').value;
 
             fetch('updateUser.php', {
@@ -542,11 +604,17 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    showToast('更新成功');
-                } else {
-                    alert(data.message || '更新失败');
+                if (!data.success) {
+                    if (data.message === 'email_exists') {
+                        // 显示邮箱已存在的错误提示
+                        document.getElementById('email-error').style.display = 'block';
+                    } else {
+                        // 处理其他错误
+                        alert(data.message);
+                    }
+                    return;
                 }
+                showToast('更新成功');
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -606,6 +674,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
                         // 重新绑定事件
                         bindUserRowEvents();
                     }
+                    checkStatus();
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -642,6 +711,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
         // 初始化页面时绑定事件
         document.addEventListener('DOMContentLoaded', function() {
             bindUserRowEvents();
+            checkStatus();
         });
 
         // 处理浏览器的前进/后退按钮
@@ -649,6 +719,36 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
             const page = new URLSearchParams(window.location.search).get('page') || '1';
             loadPage(page);
         });
+
+        function checkStatus() {
+            // 检查课表状态
+            fetch('checkStatus.php?type=course')
+                .then(response => response.json())
+                .then(emails => {
+                    document.querySelectorAll('.course-status').forEach(box => {
+                        const email = box.getAttribute('data-email');
+                        if (emails.includes(email)) {
+                            box.classList.add('active');
+                        } else {
+                            box.classList.remove('active');
+                        }
+                    });
+                });
+
+            // 检查授权码状态
+            fetch('checkStatus.php?type=proxy')
+                .then(response => response.json())
+                .then(emails => {
+                    document.querySelectorAll('.proxy-status').forEach(box => {
+                        const email = box.getAttribute('data-email');
+                        if (emails.includes(email)) {
+                            box.classList.add('active');
+                        } else {
+                            box.classList.remove('active');
+                        }
+                    });
+                });
+        }
     </script>
 </body>
 </html>

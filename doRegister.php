@@ -28,7 +28,7 @@ if ($conn->query($sql) === TRUE) {
         username VARCHAR(30) NOT NULL UNIQUE,
         realname VARCHAR(30) NOT NULL,
         password VARCHAR(255) NOT NULL,
-        email VARCHAR(50) NOT NULL
+        email VARCHAR(50) NOT NULL UNIQUE
     )";
     
     if ($conn->query($sql) === TRUE) {
@@ -37,16 +37,22 @@ if ($conn->query($sql) === TRUE) {
         $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
         $email = $_POST['email'];
         
-        // 检查用户名是否已存在
-        $check = "SELECT * FROM info WHERE username = ?";
+        // 检查用户名和邮箱是否已存在
+        $check = "SELECT * FROM info WHERE username = ? OR email = ?";
         $stmt = $conn->prepare($check);
-        $stmt->bind_param("s", $username);
+        $stmt->bind_param("ss", $username, $email);
         $stmt->execute();
         $result = $stmt->get_result();
         
         if ($result->num_rows > 0) {
-            $response['status'] = 'error';
-            $response['message'] = 'username_exists';
+            $row = $result->fetch_assoc();
+            if ($row['username'] === $username) {
+                $response['status'] = 'error';
+                $response['message'] = 'username_exists';
+            } else {
+                $response['status'] = 'error';
+                $response['message'] = 'email_exists';
+            }
         } else {
             $sql = "INSERT INTO info (username, realname, password, email) VALUES (?, ?, ?, ?)";
             $stmt = $conn->prepare($sql);

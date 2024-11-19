@@ -17,9 +17,19 @@ try {
     $db = Database::getInstance();
     $conn = $db->getConnection();
 
-    // 如果要更新邮箱，先获取旧邮箱
-    $oldEmail = null;
+    // 如果要更新邮箱，先检查是否重复
     if (isset($data['email']) && !empty($data['email'])) {
+        // 检查新邮箱是否已被其他用户使用
+        $checkEmail = $conn->prepare("SELECT id FROM info WHERE email = ? AND id != ?");
+        $checkEmail->bind_param("si", $data['email'], $data['id']);
+        $checkEmail->execute();
+        $emailResult = $checkEmail->get_result();
+        
+        if ($emailResult->num_rows > 0) {
+            die(json_encode(['success' => false, 'message' => 'email_exists']));
+        }
+
+        // 获取旧邮箱
         $stmt = $conn->prepare("SELECT email FROM info WHERE id = ?");
         $stmt->bind_param("i", $data['id']);
         $stmt->execute();
