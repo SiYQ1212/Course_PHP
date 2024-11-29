@@ -18,7 +18,6 @@ CtoE = {
     "星期日": "Sunday"
 }
 
-
 def parseData(email, noticeTime):
     pdf_path = os.path.join(Path, 'uploadFiles', email + '.pdf')
     pdf = fitz.open(pdf_path)
@@ -48,14 +47,19 @@ def parseData(email, noticeTime):
         # class_hour ?= "X-X"
         if PAT.match(class_hour):
             CLASSHOUR = course_information.pop(0)
-        courseName, detailedInformation, wasteInfomation = course_information.pop(0), course_information.pop(
-            0), course_information.pop(0)
+        courseName, detailedInformation, wasteInfomation = course_information.pop(0), course_information.pop(0), course_information.pop(0)
         if "学分" not in wasteInfomation:
             course_information.pop(0)
         newDetailedInformation = {}
-        detailedInformation = detailedInformation.split()[:6]
-        for key in range(0, len(detailedInformation), 2):
-            newDetailedInformation[detailedInformation[key][:-1]] = detailedInformation[key + 1]
+        detailedInformation = detailedInformation.split('/')[:6]
+        for i in [0, 2, 3]:
+            if ": " in detailedInformation[i]:
+                a, b = detailedInformation[i].split(': ')
+            else:
+                a, b = detailedInformation[i].split(":")
+            newDetailedInformation[a] = b
+        # for key in range(0, len(detailedInformation), 2):
+        #     newDetailedInformation[detailedInformation[key][:-1]] = detailedInformation[key + 1]
         timetable[WEEK].append([CLASSHOUR, courseName, newDetailedInformation])
     # 存入MongoDB
     db = CourseEmailDB()
